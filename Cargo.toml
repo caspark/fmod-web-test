@@ -16,3 +16,6 @@ web-sys = { version = "0.3.77", features = [
     'Node',
     'Window',
 ] }
+
+[patch.crates-io]
+# fmod-audio-sys = { path = "../../srb/fmod-oxide/fmod-sys" }

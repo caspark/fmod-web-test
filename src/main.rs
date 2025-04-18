@@ -1,4 +1,4 @@
-#![no_main]
+#![cfg_attr(target_arch = "wasm32", no_main)]
 
 #[cfg(not(target_arch = "wasm32"))]
 #[path = "desktop.rs"]

@@ -1,13 +1,16 @@
+use crossterm::{
+    cursor::*,
+    event::{Event, KeyCode, KeyEvent},
+    execute,
+    terminal::*,
+};
+use fmod::{Utf8CString, c};
+use std::io::Write;
+
 #[cfg(not(target_arch = "wasm32"))]
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    use crossterm::{
-        cursor::*,
-        event::{Event, KeyCode, KeyEvent},
-        execute,
-        terminal::*,
-    };
-    use fmod::c;
-    use std::io::Write;
+    // read first argument as path to studio examples dir
+    let studio_examples_dir = std::env::args().nth(1).unwrap();
 
     let mut builder = unsafe {
         // Safety: we call this before calling any other functions and only in main, so this is safe
@@ -19,6 +22,12 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .core_builder()
         .software_format(0, fmod::SpeakerMode::FivePointOne, 0)?;
 
+    // make sure the expected examples directory exists
+    let examples_dir = std::path::Path::new(&studio_examples_dir);
+    if !examples_dir.exists() {
+        return Err(format!("examples directory not found: {}", studio_examples_dir).into());
+    }
+
     let system = builder.build(
         1024,
         fmod::studio::InitFlags::LIVEUPDATE,
@@ -26,15 +35,20 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     system.load_bank_file(
-        c!("fmod/api/studio/examples/media/Master.bank"),
+        &Utf8CString::new(examples_dir.join("media/Master.bank").to_str().unwrap())?,
         fmod::studio::LoadBankFlags::NORMAL,
     )?;
     system.load_bank_file(
-        c!("fmod/api/studio/examples/media/Master.strings.bank"),
+        &Utf8CString::new(
+            examples_dir
+                .join("media/Master.strings.bank")
+                .to_str()
+                .unwrap(),
+        )?,
         fmod::studio::LoadBankFlags::NORMAL,
     )?;
     system.load_bank_file(
-        c!("fmod/api/studio/examples/media/SFX.bank"),
+        &Utf8CString::new(examples_dir.join("media/SFX.bank").to_str().unwrap())?,
         fmod::studio::LoadBankFlags::NORMAL,
     )?;
 

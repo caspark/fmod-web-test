@@ -8,6 +8,10 @@ if [ ! -d "fmod/web/" ]; then
 fi
 
 echo "Building..."
+
+rm -rf dist
+mkdir dist
+
 cargo build --target wasm32-unknown-unknown
 
 if [ ! -f "target/wasm32-unknown-unknown/debug/fmod-test.wasm" ]; then
@@ -18,3 +22,8 @@ fi
 wasm-bindgen target/wasm32-unknown-unknown/debug/fmod-test.wasm --out-dir dist --target web
 
 cp index.html dist/index.html
+
+# fmotstudioL is the large files - see https://www.fmod.com/docs/2.02/api/platforms-html5.html#upstream-wasm
+cp fmod/web/api/studio/lib/upstream/wasm/fmodstudioL* dist/
+mkdir -p dist/assets
+cp fmod/web/api/studio/examples/public/js/* dist/assets/

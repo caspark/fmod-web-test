@@ -14,6 +14,11 @@ use fmod::c;
 use std::io::Write;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    desktop()
+}
+
+
+fn desktop() -> Result<(), Box<dyn std::error::Error>> {
     let mut builder = unsafe {
         // Safety: we call this before calling any other functions and only in main, so this is safe
         fmod::studio::SystemBuilder::new()?

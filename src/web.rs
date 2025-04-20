@@ -4,8 +4,6 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "fmodController"])]
-    fn initialize() -> bool;
 
     #[wasm_bindgen(js_namespace = ["window", "fmodController"])]
     fn is_loaded() -> bool;
@@ -22,8 +20,6 @@ extern "C" {
 pub fn run() -> Result<(), JsValue> {
     let f = Rc::new(RefCell::new(None));
     let g = f.clone();
-
-    initialize();
 
     let mut i = 0;
     *g.borrow_mut() = Some(Closure::new(move || {

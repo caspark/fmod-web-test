@@ -4,11 +4,18 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_namespace = window)]
-    fn playEvent(sound_id: i32);
+    #[wasm_bindgen(js_namespace = ["window", "fmodController"])]
+    fn initialize() -> bool;
 
-    #[wasm_bindgen(js_namespace = window)]
-    fn isFmodReady() -> bool;
+    #[wasm_bindgen(js_namespace = ["window", "fmodController"])]
+    fn is_loaded() -> bool;
+
+    #[wasm_bindgen(js_namespace = ["window", "fmodController"])]
+    fn tick();
+
+    #[wasm_bindgen(js_namespace = ["window", "fmodController"])]
+    fn play_event(sound_id: i32);
+
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -16,9 +23,11 @@ pub fn run() -> Result<(), JsValue> {
     let f = Rc::new(RefCell::new(None));
     let g = f.clone();
 
+    initialize();
+
     let mut i = 0;
     *g.borrow_mut() = Some(Closure::new(move || {
-        if i > 1000 {
+        if i > 300 {
             body().set_text_content(Some("All done!"));
 
             // Drop our handle to this closure so that it will get cleaned
@@ -36,8 +45,12 @@ pub fn run() -> Result<(), JsValue> {
         // Schedule ourself for another requestAnimationFrame callback.
         request_animation_frame(f.borrow().as_ref().unwrap());
 
-        if isFmodReady() && i % 100 == 0 {
-            playEvent(0);
+        if is_loaded() {
+            if i % 100 == 0 {
+                play_event(0);
+            }
+
+            tick();
         }
     }));
 

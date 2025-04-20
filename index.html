@@ -18,7 +18,6 @@
       var FMOD = {}; // FMOD global object which must be declared to enable 'main' and 'preRun' and then call the constructor function.
       FMOD["preRun"] = prerun; // Will be called before FMOD runs, but after the Emscripten runtime has initialized
       FMOD["onRuntimeInitialized"] = main; // Called when the Emscripten runtime has initialized
-      FMOD["INITIAL_MEMORY"] = 64 * 1024 * 1024; // FMOD Heap defaults to 16mb which is enough for this demo, but set it differently here for demonstration (64mb)
       FMODModule(FMOD); // Calling the constructor function with our object
 
       //==============================================================================
@@ -30,6 +29,12 @@
       var explosionDescription = {}; // Global Event Description for the explosion event.  This event is played as a one-shot and released immediately after it has been created.
       var loopingAmbienceInstance = {}; // Global Event Instance for the looping ambience event.  A single instance is started or stopped based on user input.
       var cancelInstance = {}; // Global Event Instance for the cancel event.  This instance is started and if already playing, restarted.
+
+      window.fmodReady = false;
+      window.isFmodReady = function () {
+        console.log("isFmodReady", window.fmodReady);
+        return window.fmodReady;
+      };
 
       // Simple error checking function for all FMOD return values.
       function CHECK_RESULT(result) {
@@ -54,8 +59,8 @@
         fileName = ["Master.bank", "Master.strings.bank", "SFX.bank"];
 
         for (var count = 0; count < fileName.length; count++) {
-          document.querySelector("#display_out2").value =
-            "Loading " + fileName[count] + "...";
+          // document.querySelector("#display_out2").value =
+          //   "Loading " + fileName[count] + "...";
 
           FMOD.FS_createPreloadedFile(
             folderName,
@@ -128,11 +133,15 @@
 
         window.setInterval(updateApplication, 20);
 
+        window.fmodReady = true;
+
         return FMOD.OK;
       }
 
       // Function called when user presses HTML Play Sound button, with parameter 0, 1 or 2.
       function playEvent(soundid) {
+        console.log("playEvent attempt", soundid);
+
         if (soundid == 0) {
           // One-shot event
           var eventInstance = {};
@@ -288,5 +297,7 @@
     <span id="display_out"></span>
     <br />
     <span id="display_out2"></span>
+    output is:
+    <div id="output"></div>
   </body>
 </html>

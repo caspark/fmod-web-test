@@ -57,9 +57,8 @@ pub fn run() -> Result<(), JsValue> {
             if i % 100 == 0 {
                 fmod_controller.play_event(0);
             }
-
-            fmod_controller.tick();
         }
+        fmod_controller.tick();
     }));
 
     request_animation_frame(g.borrow().as_ref().unwrap());

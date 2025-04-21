@@ -178,6 +178,10 @@ export default function (filesPathPrefix, banksToLoad) {
     },
     // Update fmod to actually play audio
     tick: function () {
+      if (!this.is_loaded()) {
+        return;
+      }
+
       let result = {};
       result = gSystem.update();
       CHECK_RESULT(result);

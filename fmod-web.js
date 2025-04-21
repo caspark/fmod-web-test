@@ -137,6 +137,7 @@ export default function (filesPathPrefix, banksToLoad) {
       CHECK_RESULT(
         gSystem.getEvent("event:/Ambience/Country", loopingAmbienceDescription)
       );
+      console.log("loopingAmbienceDescription", loopingAmbienceDescription);
 
       CHECK_RESULT(
         loopingAmbienceDescription.val.createInstance(loopingAmbienceInstance)

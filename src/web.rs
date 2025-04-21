@@ -2,22 +2,34 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
+#[wasm_bindgen(module = "/fmod-web.js")]
 extern "C" {
+    type FmodController;
 
-    #[wasm_bindgen(js_namespace = ["window", "fmodController"])]
-    fn is_loaded() -> bool;
+    #[wasm_bindgen(js_name = "default")]
+    fn load_fmod(base_path: &str, banks: Vec<String>) -> FmodController;
 
-    #[wasm_bindgen(js_namespace = ["window", "fmodController"])]
-    fn tick();
+    #[wasm_bindgen(method)]
+    fn is_loaded(this: &FmodController) -> bool;
 
-    #[wasm_bindgen(js_namespace = ["window", "fmodController"])]
-    fn play_event(sound_id: i32);
+    #[wasm_bindgen(method)]
+    fn tick(this: &FmodController);
+
+    #[wasm_bindgen(method)]
+    fn play_event(this: &FmodController, sound_id: i32);
 
 }
 
 #[cfg(target_arch = "wasm32")]
 pub fn run() -> Result<(), JsValue> {
+    let banks = vec![
+        "Master.bank".to_string(),
+        "Master.strings.bank".to_string(),
+        "SFX.bank".to_string(),
+    ];
+
+    let fmod_controller = load_fmod("/assets/", banks);
+
     let f = Rc::new(RefCell::new(None));
     let g = f.clone();
 
@@ -41,12 +53,12 @@ pub fn run() -> Result<(), JsValue> {
         // Schedule ourself for another requestAnimationFrame callback.
         request_animation_frame(f.borrow().as_ref().unwrap());
 
-        if is_loaded() {
+        if fmod_controller.is_loaded() {
             if i % 100 == 0 {
-                play_event(0);
+                fmod_controller.play_event(0);
             }
 
-            tick();
+            fmod_controller.tick();
         }
     }));
 

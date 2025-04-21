@@ -52,52 +52,42 @@ export default function (filesPathPrefix, banksToLoad) {
     onRuntimeInitialized: function () {
       // A temporary empty object to hold return values
       let outval = {};
-      let result;
 
       console.log("Creating FMOD Studio System");
 
-      // Create the system and check the result
-      result = FMOD.Studio_System_Create(outval);
-      CHECK_RESULT(result);
-
-      // Take out our System object
+      // Create the systems
+      CHECK_RESULT(FMOD.Studio_System_Create(outval));
       gSystemStudio = outval.val;
-
-      result = gSystemStudio.getCoreSystem(outval);
-      CHECK_RESULT(result);
-
+      CHECK_RESULT(gSystemStudio.getCoreSystem(outval));
       gSystemCore = outval.val;
 
       // Optional.  Setting DSP Buffer size can affect latency and stability.
       // Processing is currently done in the main thread so anything lower than 2048 samples can cause stuttering on some devices.
-      console.log("set DSP Buffer size.");
-      result = gSystemCore.setDSPBufferSize(2048, 2);
-      CHECK_RESULT(result);
+      console.log("FMOD setting DSP buffer size to 2048, 2");
+      CHECK_RESULT(gSystemCore.setDSPBufferSize(2048, 2));
 
       // Optional.  Set sample rate of mixer to be the same as the OS output rate.
       // This can save CPU time and latency by avoiding the automatic insertion of a resampler at the output stage.
-      console.log("Set mixer sample rate");
-      result = gSystemCore.getDriverInfo(0, null, null, outval, null, null);
-      CHECK_RESULT(result);
-      result = gSystemCore.setSoftwareFormat(
-        outval.val,
-        FMOD.SPEAKERMODE_DEFAULT,
-        0
+      console.log("FMOD setting mixer sample rate to OS output rate");
+      CHECK_RESULT(
+        gSystemCore.getDriverInfo(0, null, null, outval, null, null)
       );
-      CHECK_RESULT(result);
+      CHECK_RESULT(
+        gSystemCore.setSoftwareFormat(outval.val, FMOD.SPEAKERMODE_DEFAULT, 0)
+      );
 
-      console.log("Initializing FMOD Studio");
-
+      console.log("FMOD initializing Studio");
       // 1024 virtual channels
-      result = gSystemStudio.initialize(
-        1024,
-        FMOD.STUDIO_INIT_NORMAL,
-        FMOD.INIT_NORMAL,
-        null
+      CHECK_RESULT(
+        gSystemStudio.initialize(
+          1024,
+          FMOD.STUDIO_INIT_NORMAL,
+          FMOD.INIT_NORMAL,
+          null
+        )
       );
-      CHECK_RESULT(result);
 
-      console.log("Loading banks");
+      console.log("FMOD loading banks", banksToLoad);
       for (const bankToLoad of banksToLoad) {
         let bankHandle = {};
         CHECK_RESULT(
@@ -107,8 +97,10 @@ export default function (filesPathPrefix, banksToLoad) {
             bankHandle
           )
         );
+        // (we just throw away the bank handle here because we don't support unloading banks)
       }
 
+      console.log("FMOD loading complete");
       initState = 2;
 
       return FMOD.OK;
@@ -169,6 +161,10 @@ export default function (filesPathPrefix, banksToLoad) {
   // to Rust via wasm-bindgen.
   let fmodLoader = {
     get_loaded: function () {
+      //NB: we haven't got any particular detection of error states here - so if audio loading is
+      //failing completely, we'll just hang in whatever state we were in when the error occurred.
+      //(Ideally we'd save the latest error and throw it here again so it can be 'caught' as a Rust
+      // error type)
       if (initState == 0) {
         throw "Waiting for prerun";
       } else if (initState == 1) {
@@ -176,7 +172,8 @@ export default function (filesPathPrefix, banksToLoad) {
       } else if (initState == 2) {
         return fmodWeb;
       } else {
-        throw "Unknown loading state";
+        // this is a bug: we should have enumerated all known steps of the loading process above.
+        throw "Unknown FMOD loading state";
       }
     },
   };

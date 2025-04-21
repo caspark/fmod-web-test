@@ -195,24 +195,6 @@ export default function (filesPathPrefix, banksToLoad) {
       CHECK_RESULT(gSystemStudio.getEvent(event_name, eventDescription));
       return new FmodEvent(eventDescription.val);
     },
-    system_studio: function () {
-      if (!this.is_loaded()) {
-        return null;
-      }
-      return gSystemStudio;
-    },
-    system_core: function () {
-      if (!this.is_loaded()) {
-        return null;
-      }
-      return gSystemCore;
-    },
-    fmod: function () {
-      if (!this.is_loaded()) {
-        return null;
-      }
-      return FMOD;
-    },
   };
 
   // begin initializing the fmod controller right away: get Emscripten to load the FMOD API

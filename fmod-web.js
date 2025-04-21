@@ -13,7 +13,7 @@ export default function (filesPathPrefix, banksToLoad) {
   let initState = 0;
 
   // Global 'System' object which has the Studio API functions.
-  let gSystem;
+  let gSystemStudio;
   // Global 'SystemCore' object which has the Core API functions.
   let gSystemCore;
 
@@ -75,9 +75,9 @@ export default function (filesPathPrefix, banksToLoad) {
       console.log("grabbing system object from temporary and storing it");
 
       // Take out our System object
-      gSystem = outval.val;
+      gSystemStudio = outval.val;
 
-      result = gSystem.getCoreSystem(outval);
+      result = gSystemStudio.getCoreSystem(outval);
       CHECK_RESULT(result);
 
       gSystemCore = outval.val;
@@ -103,7 +103,7 @@ export default function (filesPathPrefix, banksToLoad) {
       console.log("initialize FMOD");
 
       // 1024 virtual channels
-      result = gSystem.initialize(
+      result = gSystemStudio.initialize(
         1024,
         FMOD.STUDIO_INIT_NORMAL,
         FMOD.INIT_NORMAL,
@@ -118,7 +118,7 @@ export default function (filesPathPrefix, banksToLoad) {
       for (const bankToLoad of banksToLoad) {
         let bankHandle = {};
         CHECK_RESULT(
-          gSystem.loadBankFile(
+          gSystemStudio.loadBankFile(
             "/" + bankToLoad,
             FMOD.STUDIO_LOAD_BANK_NORMAL,
             bankHandle
@@ -182,7 +182,7 @@ export default function (filesPathPrefix, banksToLoad) {
       }
 
       let result = {};
-      result = gSystem.update();
+      result = gSystemStudio.update();
       CHECK_RESULT(result);
     },
     get_event: function (event_name) {
@@ -192,8 +192,26 @@ export default function (filesPathPrefix, banksToLoad) {
       }
 
       let eventDescription = {};
-      CHECK_RESULT(gSystem.getEvent(event_name, eventDescription));
+      CHECK_RESULT(gSystemStudio.getEvent(event_name, eventDescription));
       return new FmodEvent(eventDescription.val);
+    },
+    system_studio: function () {
+      if (!this.is_loaded()) {
+        return null;
+      }
+      return gSystemStudio;
+    },
+    system_core: function () {
+      if (!this.is_loaded()) {
+        return null;
+      }
+      return gSystemCore;
+    },
+    fmod: function () {
+      if (!this.is_loaded()) {
+        return null;
+      }
+      return FMOD;
     },
   };
 

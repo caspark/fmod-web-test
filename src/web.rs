@@ -2,11 +2,17 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
+type FmodResultVal = u8;
+
 #[wasm_bindgen(module = "/fmod-web.js")]
 extern "C" {
     type FmodWeb;
     type FmodEvent;
     type FmodInstance;
+
+    type Fmod;
+    type FmodSystemStudio;
+    type FmodSystemCore;
 
     #[wasm_bindgen(js_name = "default")]
     fn load_fmod(base_path: &str, banks: Vec<String>) -> FmodWeb;
@@ -16,9 +22,6 @@ extern "C" {
 
     #[wasm_bindgen(method)]
     fn tick(this: &FmodWeb);
-
-    #[wasm_bindgen(method)]
-    fn play_event(this: &FmodWeb, sound_id: i32);
 
     #[wasm_bindgen(method)]
     fn get_event(this: &FmodWeb, event_name: &str) -> FmodEvent;
@@ -37,6 +40,29 @@ extern "C" {
 
     #[wasm_bindgen(method)]
     fn release(this: &FmodInstance);
+
+    #[wasm_bindgen(method)]
+    fn fmod(this: &FmodWeb) -> Option<Fmod>;
+
+    #[wasm_bindgen(method)]
+    fn system_studio(this: &FmodWeb) -> Option<FmodSystemStudio>;
+
+    #[wasm_bindgen(method)]
+    fn system_core(this: &FmodWeb) -> Option<FmodSystemCore>;
+
+    //STUDIO METHODS
+    #[wasm_bindgen(method)]
+    fn update(this: &FmodSystemStudio) -> FmodResultVal;
+
+    // FMOD BINDINGS
+    #[wasm_bindgen(method, getter, js_name = "OK")]
+    fn ok(this: &Fmod) -> FmodResultVal;
+}
+
+struct FmodSystems {
+    fmod: Fmod,
+    studio: FmodSystemStudio,
+    core: FmodSystemCore,
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -60,6 +86,7 @@ pub fn run() -> Result<(), JsValue> {
         explosionDescription: FmodEvent,
     }
 
+    let mut systems = None;
     let mut events = None;
 
     let mut i = 0;
@@ -83,6 +110,21 @@ pub fn run() -> Result<(), JsValue> {
         request_animation_frame(f.borrow().as_ref().unwrap());
 
         if fmod_controller.is_loaded() {
+            if systems.is_none() {
+                systems = Some(FmodSystems {
+                    fmod: fmod_controller.fmod().unwrap(),
+                    studio: fmod_controller.system_studio().unwrap(),
+                    core: fmod_controller.system_core().unwrap(),
+                });
+            }
+
+            if let Some(systems) = &systems {
+                let result = systems.studio.update();
+                if result != systems.fmod.ok() {
+                    panic!("Failed to update FMOD studio system: {}", result);
+                }
+            }
+
             if events.is_none() {
                 let looping_ambience_description =
                     fmod_controller.get_event("event:/Ambience/Country");
@@ -109,7 +151,7 @@ pub fn run() -> Result<(), JsValue> {
                 }
             }
         }
-        fmod_controller.tick();
+        // fmod_controller.tick();
     }));
 
     request_animation_frame(g.borrow().as_ref().unwrap());

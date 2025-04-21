@@ -7,24 +7,16 @@
     <script type="text/javascript" src="fmodstudioL.js"></script>
     <script type="module">
       import init from "./fmod-test.js";
-      import createFmodController from "./fmod-web.js";
-
-      // Initialize FMOD controller with the correct bank paths
-      window.fmodController = createFmodController("/assets/", [
-        "Master.bank",
-        "Master.strings.bank",
-        "SFX.bank",
-      ]);
-
-      // Create global playEvent function that uses the controller
-      window.playEvent = function (soundid) {
-        window.fmodController.play_event(soundid);
-      };
 
       async function run() {
         await init();
       }
       run();
+
+      // Stub out the old play event function that the buttons below use
+      window.playEvent = function (soundid) {
+        console.log("window playEvent currently disabled - soundid", soundid);
+      };
     </script>
 
     <button type="button" id="playEvent0" onclick="playEvent(0)" disabled>

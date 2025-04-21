@@ -172,7 +172,7 @@ export default function (filesPathPrefix, banksToLoad) {
   // A convenience wrapper for the FMOD object that provides a friendlier API.
   // We use Rust naming conventions for function names since we expect to expose this directly
   // to Rust via wasm-bindgen.
-  let fmodController = {
+  let fmodWeb = {
     is_loaded: function () {
       return initState == 3;
     },
@@ -215,7 +215,7 @@ export default function (filesPathPrefix, banksToLoad) {
   FMODModule(FMOD);
   initState = 1;
 
-  return fmodController;
+  return fmodWeb;
 }
 
 //==============================================================================

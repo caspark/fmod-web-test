@@ -4,19 +4,19 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(module = "/fmod-web.js")]
 extern "C" {
-    type FmodController;
+    type FmodWeb;
 
     #[wasm_bindgen(js_name = "default")]
-    fn load_fmod(base_path: &str, banks: Vec<String>) -> FmodController;
+    fn load_fmod(base_path: &str, banks: Vec<String>) -> FmodWeb;
 
     #[wasm_bindgen(method)]
-    fn is_loaded(this: &FmodController) -> bool;
+    fn is_loaded(this: &FmodWeb) -> bool;
 
     #[wasm_bindgen(method)]
-    fn tick(this: &FmodController);
+    fn tick(this: &FmodWeb);
 
     #[wasm_bindgen(method)]
-    fn play_event(this: &FmodController, sound_id: i32);
+    fn play_event(this: &FmodWeb, sound_id: i32);
 
 }
 

@@ -9,7 +9,7 @@
  * @returns {Object} - A controller object for interacting with FMOD.
  */
 export default function (filesPathPrefix, banksToLoad) {
-  // 0 = not initialized, 1 = waiting for prerun, 2 = prerun complete, 3 = loaded (and ready to play sound)
+  // 0 = waiting for prerun, 1 = prerun complete, 2 = loaded (and ready to play sound)
   let initState = 0;
 
   // Global 'System' object which has the Studio API functions.
@@ -20,12 +20,9 @@ export default function (filesPathPrefix, banksToLoad) {
   // Simple error checking function for all FMOD return values. Can only be used once FMOD runtime
   // has been initialized.
   function CHECK_RESULT(result) {
-    //FIXME should have some better error handling here?
     if (result != FMOD.OK) {
       let msg = "FMOD Error: '" + FMOD.ErrorString(result) + "'";
-
-      alert(msg);
-
+      console.error(msg);
       throw msg;
     }
   }
@@ -35,18 +32,11 @@ export default function (filesPathPrefix, banksToLoad) {
   let FMOD = {
     // runs before emscripten runtime is initialized
     preRun: function () {
-      console.debug("fmod preRun");
-
       let folderName = "/";
-      let fileName;
       let canRead = true;
       let canWrite = false;
 
-      fileName = ["Master.bank", "Master.strings.bank", "SFX.bank"];
-
       for (const fileToLoad of banksToLoad) {
-        console.debug("fmod: creating preloaded file", fileToLoad);
-
         FMOD.FS_createPreloadedFile(
           folderName,
           fileToLoad,
@@ -56,23 +46,19 @@ export default function (filesPathPrefix, banksToLoad) {
         );
       }
 
-      initState = 2;
+      initState = 1;
     },
     // runs after emscripten runtime is initialized and fmod is loaded
     onRuntimeInitialized: function () {
-      console.debug("fmod onRuntimeInitialized, this is ", this);
-
-      // A temporary empty object to hold our system
+      // A temporary empty object to hold return values
       let outval = {};
       let result;
 
-      console.log("Creating FMOD System object");
+      console.log("Creating FMOD Studio System");
 
       // Create the system and check the result
       result = FMOD.Studio_System_Create(outval);
       CHECK_RESULT(result);
-
-      console.log("grabbing system object from temporary and storing it");
 
       // Take out our System object
       gSystemStudio = outval.val;
@@ -100,7 +86,7 @@ export default function (filesPathPrefix, banksToLoad) {
       );
       CHECK_RESULT(result);
 
-      console.log("initialize FMOD");
+      console.log("Initializing FMOD Studio");
 
       // 1024 virtual channels
       result = gSystemStudio.initialize(
@@ -110,9 +96,6 @@ export default function (filesPathPrefix, banksToLoad) {
         null
       );
       CHECK_RESULT(result);
-
-      // Starting up your typical JavaScript application loop
-      console.log("initialize Application");
 
       console.log("Loading banks");
       for (const bankToLoad of banksToLoad) {
@@ -126,7 +109,7 @@ export default function (filesPathPrefix, banksToLoad) {
         );
       }
 
-      initState = 3;
+      initState = 2;
 
       return FMOD.OK;
     },
@@ -168,41 +151,41 @@ export default function (filesPathPrefix, banksToLoad) {
     }
   }
 
-  // A convenience wrapper for the FMOD object that provides a friendlier API.
-  // We use Rust naming conventions for function names since we expect to expose this directly
-  // to Rust via wasm-bindgen.
-  let fmodWeb = {
-    is_loaded: function () {
-      return initState == 3;
-    },
-    // Update fmod to actually play audio
-    tick: function () {
-      if (!this.is_loaded()) {
-        return;
-      }
+  class FmodWeb {
+    update() {
+      CHECK_RESULT(gSystemStudio.update());
+    }
 
-      let result = {};
-      result = gSystemStudio.update();
-      CHECK_RESULT(result);
-    },
-    get_event: function (event_name) {
-      if (!this.is_loaded()) {
-        console.log("ignoring get_event attempt while not loaded", event_name);
-        return null;
-      }
-
+    get_event(event_name) {
       let eventDescription = {};
       CHECK_RESULT(gSystemStudio.getEvent(event_name, eventDescription));
       return new FmodEvent(eventDescription.val);
+    }
+  }
+  let fmodWeb = new FmodWeb();
+
+  // A convenience wrapper for the FMOD object that provides a friendlier API.
+  // We use Rust naming conventions for function names since we expect to expose this directly
+  // to Rust via wasm-bindgen.
+  let fmodLoader = {
+    get_loaded: function () {
+      if (initState == 0) {
+        throw "Waiting for prerun";
+      } else if (initState == 1) {
+        throw "Setting up fmod";
+      } else if (initState == 2) {
+        return fmodWeb;
+      } else {
+        throw "Unknown loading state";
+      }
     },
   };
 
   // begin initializing the fmod controller right away: get Emscripten to load the FMOD API
   // so that Emscripten will call our FMOD object method callbacks
   FMODModule(FMOD);
-  initState = 1;
 
-  return fmodWeb;
+  return fmodLoader;
 }
 
 //==============================================================================

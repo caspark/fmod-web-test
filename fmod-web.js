@@ -17,16 +17,10 @@ export default function (filesPathPrefix, banksToLoad) {
   // Global 'SystemCore' object which has the Core API functions.
   let gSystemCore;
 
-  // Handles to various event descriptions and instances
-  //TODO these should be held on the Rust side, not here as a bit of JS scope
-  let explosionDescription = {}; // Global Event Description for the explosion event.  This event is played as a one-shot and released immediately after it has been created.
-  let loopingAmbienceInstance = {}; // Global Event Instance for the looping ambience event.  A single instance is started or stopped based on user input.
-  let cancelInstance = {}; // Global Event Instance for the cancel event.  This instance is started and if already playing, restarted.
-
   // Simple error checking function for all FMOD return values. Can only be used once FMOD runtime
   // has been initialized.
   function CHECK_RESULT(result) {
-    //FIXME should have some better error logging here?
+    //FIXME should have some better error handling here?
     if (result != FMOD.OK) {
       let msg = "FMOD Error: '" + FMOD.ErrorString(result) + "'";
 
@@ -132,42 +126,47 @@ export default function (filesPathPrefix, banksToLoad) {
         );
       }
 
-      // Get the Looping Ambience event
-      var loopingAmbienceDescription = {};
-      CHECK_RESULT(
-        gSystem.getEvent("event:/Ambience/Country", loopingAmbienceDescription)
-      );
-      console.log("loopingAmbienceDescription", loopingAmbienceDescription);
-
-      CHECK_RESULT(
-        loopingAmbienceDescription.val.createInstance(loopingAmbienceInstance)
-      );
-
-      // Get the 4 Second Surge event
-      var cancelDescription = {};
-      CHECK_RESULT(gSystem.getEvent("event:/UI/Cancel", cancelDescription));
-
-      CHECK_RESULT(cancelDescription.val.createInstance(cancelInstance));
-
-      // Get the Explosion event
-      CHECK_RESULT(
-        gSystem.getEvent("event:/Weapons/Explosion", explosionDescription)
-      );
-
-      // Start loading explosion sample data and keep it in memory
-      CHECK_RESULT(explosionDescription.val.loadSampleData());
-
-      // Once the loading is finished, re-enable the disabled buttons.
-      document.getElementById("playEvent0").disabled = false;
-      document.getElementById("playEvent1").disabled = false;
-      document.getElementById("playEvent2").disabled = false;
-      document.getElementById("playEvent3").disabled = false;
-
       initState = 3;
 
       return FMOD.OK;
     },
   };
+
+  // Wrapper class for FMOD Event Description
+  class FmodEvent {
+    constructor(eventDescription) {
+      this.eventDescription = eventDescription;
+    }
+
+    create_instance() {
+      let instance = {};
+      CHECK_RESULT(this.eventDescription.createInstance(instance));
+      return new FmodInstance(instance.val);
+    }
+
+    load_sample_data() {
+      CHECK_RESULT(this.eventDescription.loadSampleData());
+    }
+  }
+
+  // Wrapper class for FMOD Event Instance
+  class FmodInstance {
+    constructor(instance) {
+      this.instance = instance;
+    }
+
+    start() {
+      CHECK_RESULT(this.instance.start());
+    }
+
+    stop() {
+      CHECK_RESULT(this.instance.stop(FMOD.STUDIO_STOP_IMMEDIATE));
+    }
+
+    release() {
+      CHECK_RESULT(this.instance.release());
+    }
+  }
 
   // A convenience wrapper for the FMOD object that provides a friendlier API.
   // We use Rust naming conventions for function names since we expect to expose this directly
@@ -186,31 +185,15 @@ export default function (filesPathPrefix, banksToLoad) {
       result = gSystem.update();
       CHECK_RESULT(result);
     },
-    play_event: function (soundid) {
+    get_event: function (event_name) {
       if (!this.is_loaded()) {
-        console.log("ignoring playEvent attempt while not loaded", soundid);
-        return;
+        console.log("ignoring get_event attempt while not loaded", event_name);
+        return null;
       }
 
-      console.log("controller playEvent attempt", soundid);
-
-      if (soundid == 0) {
-        // One-shot event
-        let eventInstance = {};
-        CHECK_RESULT(explosionDescription.val.createInstance(eventInstance));
-        CHECK_RESULT(eventInstance.val.start());
-
-        // Release will clean up the instance when it completes
-        CHECK_RESULT(eventInstance.val.release());
-      } else if (soundid == 1) {
-        CHECK_RESULT(loopingAmbienceInstance.val.start());
-      } else if (soundid == 2) {
-        CHECK_RESULT(
-          loopingAmbienceInstance.val.stop(FMOD.STUDIO_STOP_IMMEDIATE)
-        );
-      } else if (soundid == 3) {
-        CHECK_RESULT(cancelInstance.val.start());
-      }
+      let eventDescription = {};
+      CHECK_RESULT(gSystem.getEvent(event_name, eventDescription));
+      return new FmodEvent(eventDescription.val);
     },
   };
 

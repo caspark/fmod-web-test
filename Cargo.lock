@@ -205,6 +205,7 @@ name = "fmod-test"
 version = "0.1.0"
 dependencies = [
  "crossterm",
+ "fmod-audio-sys",
  "fmod-oxide",
  "wasm-bindgen",
  "web-sys",

@@ -4,13 +4,56 @@ use crossterm::{
     execute,
     terminal::*,
 };
-use fmod::{Utf8CString, c};
+use fmod::{Utf8CStr, Utf8CString, c};
+use fmod_sys;
+use std::ffi::{c_char, c_int};
 use std::io::Write;
+
+unsafe extern "C" fn my_debug_callback(
+    flags_raw: fmod_sys::FMOD_DEBUG_FLAGS,
+    _file_ptr: *const c_char,
+    _line: c_int,
+    func_ptr: *const c_char,
+    message_ptr: *const c_char,
+) -> fmod_sys::FMOD_RESULT {
+    let flags = fmod::debug::DebugFlags::from(flags_raw);
+
+    let flag_str = if flags.contains(fmod::debug::DebugFlags::ERROR) {
+        "ERROR"
+    } else if flags.contains(fmod::debug::DebugFlags::WARNING) {
+        "WARN"
+    } else if flags.contains(fmod::debug::DebugFlags::LOG) {
+        "LOG"
+    } else if flags.contains(fmod::debug::DebugFlags::MEMORY) {
+        "MEMORY"
+    } else if flags.contains(fmod::debug::DebugFlags::FILE) {
+        "FILE"
+    } else if flags.contains(fmod::debug::DebugFlags::CODEC) {
+        "CODE"
+    } else if flags.contains(fmod::debug::DebugFlags::TRACE) {
+        "TRACE"
+    } else {
+        "NONE"
+    };
+
+    let func = unsafe { Utf8CStr::from_ptr(func_ptr).ok() };
+    let message = unsafe { Utf8CStr::from_ptr(message_ptr).ok() };
+    if let Some((func, message)) = func.zip(message) {
+        print!("FMOD: {flag_str} {func}: {message}");
+    }
+
+    fmod_sys::FMOD_RESULT::FMOD_OK
+}
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     // read first argument as path to studio examples dir
     let studio_examples_dir = std::env::args().nth(1).unwrap();
+
+    fmod::debug::initialize(
+        fmod::debug::DebugFlags::LOG,
+        fmod::debug::DebugMode::Callback(my_debug_callback),
+    )?;
 
     let mut builder = unsafe {
         // Safety: we call this before calling any other functions and only in main, so this is safe

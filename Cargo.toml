@@ -5,6 +5,7 @@ edition = "2024"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 crossterm = "0.29.0"
+fmod-audio-sys = "2.220.2"
 fmod-oxide = "2.2.0-pre.4"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

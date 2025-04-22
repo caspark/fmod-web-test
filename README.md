@@ -17,15 +17,26 @@ The .so files are loaded at runtime by fmod.
 
 ## Run
 
+### Linux
 ```sh
 # sets FMOD_SYS_FMOD_DIRECTORY and LD_LIBRARY_PATH as needed
 ./run-linux.sh fmod/linux/api/studio/examples/
 # or
 ./run-linux.sh --release -- fmod/linux/api/studio/examples/
+```
 
-# or
+### Web
 
+```sh
 ./run-web.sh
+```
+
+### Windows
+
+Install fmod sdk 2.02.22 to the default path of C:\Program Files (x86)\FMOD SoundSystem\ then do:
+
+```sh
+./run-windows.ps1
 ```
 
 ## Vscode config

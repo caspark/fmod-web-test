@@ -124,6 +124,12 @@ impl AudioBackend for FmodWebBackend {
         FmodWebBackend::shutdown(&self).to_result()
     }
 
+    fn get_event(&self, event_name: &str) -> AudioResult<Box<dyn AudioEventDescription>> {
+        FmodWebBackend::get_event(&self, event_name)
+            .map(|r| Box::new(r) as Box<dyn AudioEventDescription>)
+            .to_result()
+    }
+
     fn get_event_list(&self) -> AudioResult<Vec<Box<dyn AudioEventDescription>>> {
         FmodWebBackend::get_event_list(&self)
             .map(|r| {

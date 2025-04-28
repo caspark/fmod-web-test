@@ -78,14 +78,12 @@ export default function (filesPathPrefix, banksToLoad) {
   }
 
   class FmodWebBackend {
-    constructor(masterBank) {
-      if (!masterBank) {
-        throw (
-          "Can't create FmodWebBackend with null/undefined masterBank: " +
-          masterBank
-        );
+    constructor(banks) {
+      if (!banks || banks.length === 0) {
+        throw "Can't create FmodWebBackend with empty banks array";
       }
-      this.masterBank = masterBank;
+
+      this.banks = banks;
     }
 
     update() {
@@ -102,28 +100,29 @@ export default function (filesPathPrefix, banksToLoad) {
       return new FmodEventDescription(eventDescriptionOut.val);
     }
 
-    event_count() {
-      let countOut = {};
-      CHECK_RESULT(this.masterBank.getEventCount(countOut));
-      return countOut.val;
-    }
-
     get_event_list() {
-      let count = this.event_count();
-
-      let arrayOut = { val: new Array(count) };
-      let countOut = {};
-
-      // Call the FMOD function with proper parameters
-      CHECK_RESULT(this.masterBank.getEventList(arrayOut, count, countOut));
-      if (countOut.val != count) {
-        throw "FMOD event list count mismatch";
-      }
-
       let result = [];
-      // Process each event description in the array
-      for (const eventDesc of arrayOut.val) {
-        result.push(new FmodEventDescription(eventDesc));
+
+      for (const [bankName, bank] of this.banks) {
+        let countOut = {};
+        CHECK_RESULT(bank.getEventCount(countOut));
+        const count = countOut.val;
+
+        if (count > 0) {
+          let arrayOut = { val: new Array(count) };
+          let retrievedCountOut = {};
+
+          // Call the FMOD function with proper parameters
+          CHECK_RESULT(bank.getEventList(arrayOut, count, retrievedCountOut));
+          if (retrievedCountOut.val != count) {
+            throw `FMOD event list count mismatch for bank ${bankName}`;
+          }
+
+          // Process each event description in the array
+          for (const eventDesc of arrayOut.val) {
+            result.push(new FmodEventDescription(eventDesc));
+          }
+        }
       }
 
       return result;
@@ -307,7 +306,9 @@ export default function (filesPathPrefix, banksToLoad) {
       );
 
       console.log("FMOD loading banks", banksToLoad);
-      let masterBank;
+      let loadedBanks = [];
+      let masterBankFound = false;
+
       for (const bankToLoad of banksToLoad) {
         let bankOut = {};
         CHECK_RESULT(
@@ -317,22 +318,24 @@ export default function (filesPathPrefix, banksToLoad) {
             bankOut
           )
         );
+
         if (bankToLoad == "Master.bank") {
           CHECK_RESULT(bankOut.val.loadSampleData());
-
-          masterBank = bankOut.val;
+          masterBankFound = true;
         }
-        // (we just throw away the bank handle here because we don't support unloading banks)
+
+        // Store the bank with its filename
+        loadedBanks.push([bankToLoad, bankOut.val]);
       }
 
-      if (!masterBank) {
+      if (!masterBankFound) {
         throw "Master bank not found: at least one bank filename must be 'Master.bank'";
       }
 
       console.log("FMOD loading complete");
       initState = 2;
 
-      gFmodWebBackend = new FmodWebBackend(masterBank);
+      gFmodWebBackend = new FmodWebBackend(loadedBanks);
 
       return FMOD.OK;
     },

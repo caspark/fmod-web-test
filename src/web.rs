@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
-type FmodResult<T> = Result<T, JsValue>;
+use crate::audio::*;
 
 #[wasm_bindgen()]
 extern "C" {
@@ -10,61 +10,11 @@ extern "C" {
     fn console_log(message: &str);
 }
 
-#[wasm_bindgen(module = "/fmod-web.js")]
-extern "C" {
-
-    #[wasm_bindgen(js_name = "default")]
-    fn load_fmod(base_path: &str, banks: Vec<String>) -> FmodLoader;
-
-    type FmodLoader;
-
-    #[wasm_bindgen(method, catch)]
-    fn get_loaded(this: &FmodLoader) -> FmodResult<FmodWeb>;
-
-    type FmodWeb;
-
-    /// Run the update loop for fmod, to actually play audio.
-    #[wasm_bindgen(method, catch)]
-    fn update(this: &FmodWeb) -> FmodResult<()>;
-
-    /// Get an event description from fmod.
-    #[wasm_bindgen(method, catch)]
-    fn get_event(this: &FmodWeb, event_name: &str) -> FmodResult<FmodEvent>;
-
-    type FmodEvent;
-
-    /// Create an instance of an event.
-    #[wasm_bindgen(method, catch)]
-    fn create_instance(this: &FmodEvent) -> FmodResult<FmodInstance>;
-
-    /// Load the sample data for an event.
-    #[wasm_bindgen(method, catch)]
-    fn load_sample_data(this: &FmodEvent) -> FmodResult<()>;
-
-    type FmodInstance;
-
-    /// Start playing an event.
-    #[wasm_bindgen(method, catch)]
-    fn start(this: &FmodInstance) -> FmodResult<()>;
-
-    /// Stop playing an event.
-    #[wasm_bindgen(method, catch)]
-    fn stop(this: &FmodInstance) -> FmodResult<()>;
-
-    /// Release an event instance
-    #[wasm_bindgen(method, catch)]
-    fn release(this: &FmodInstance) -> FmodResult<()>;
-}
-
 #[cfg(target_arch = "wasm32")]
 pub fn run() -> Result<(), JsValue> {
-    let banks = vec![
-        "Master.bank".to_string(),
-        "Master.strings.bank".to_string(),
-        "SFX.bank".to_string(),
-    ];
+    let banks = vec!["Master.bank", "Master.strings.bank", "SFX.bank"];
 
-    let fmod_loader = load_fmod("/assets/", banks);
+    let fmod_loader = crate::audio::start_loading_audio_backend("/assets/", &banks);
 
     let f = Rc::new(RefCell::new(None));
     let g = f.clone();
@@ -91,11 +41,16 @@ pub fn run() -> Result<(), JsValue> {
         // Schedule ourself for another requestAnimationFrame callback.
         request_animation_frame(f.borrow().as_ref().unwrap());
 
-        if let Ok(fmod_web) = fmod_loader.get_loaded() {
-            match handle_audio(&fmod_web, &mut events, i) {
-                Ok(_) => (),
+        if let Some(load_result) = fmod_loader.get_loaded() {
+            match load_result {
+                Ok(fmod_web) => match handle_audio(fmod_web, &mut events, i) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        console_log(&format!("Audio error: {:?}", e));
+                    }
+                },
                 Err(e) => {
-                    console_log(&format!("Audio error: {:?}", e));
+                    console_log(&format!("Audio loading error: {:?}", e));
                 }
             }
         }
@@ -106,13 +61,16 @@ pub fn run() -> Result<(), JsValue> {
 }
 
 struct LoadedEvents {
-    explosion_description: FmodEvent,
+    explosion_description: Box<dyn AudioEventDescription>,
 }
 
-fn handle_audio(fmod_web: &FmodWeb, events: &mut Option<LoadedEvents>, i: i32) -> FmodResult<()> {
+fn handle_audio(
+    fmod_web: Box<dyn AudioBackend>,
+    events: &mut Option<LoadedEvents>,
+    i: i32,
+) -> AudioResult<()> {
     if events.is_none() {
         let explosion_description = fmod_web.get_event("event:/Weapons/Explosion")?;
-        explosion_description.load_sample_data()?;
 
         *events = Some(LoadedEvents {
             explosion_description,

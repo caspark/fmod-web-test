@@ -112,6 +112,13 @@ impl AudioBackend for FmodOxideAudioBackend {
         Ok(())
     }
 
+    fn get_event(&self, event_name: &str) -> AudioResult<Box<dyn AudioEventDescription>> {
+        let event_name_cstring = Utf8CString::new(event_name)?;
+        let event = self.system.get_event(&event_name_cstring)?;
+
+        Ok(Box::new(event))
+    }
+
     fn get_event_list(&self) -> AudioResult<Vec<Box<dyn AudioEventDescription>>> {
         let mut all_events = Vec::new();
         for (_bank_name, bank) in &self.banks {

@@ -8,6 +8,10 @@
 //! This wrapper also boxes everything to make it possible to move types as necessary (e.g.
 //! [AudioEventInstance::release] takes self by value to ensure that the instance is not again used
 //! later). There might be a neater way to do that instead.
+//!
+//! Lastly, this wrapper flattens banks into the system, which is just because in my game I only use
+//! one bank - a more flexible approach would be to expose banks as separate from the audiobackend
+//! (/fmod system).
 #![allow(dead_code)]
 
 use crate::prelude::*;
@@ -56,6 +60,8 @@ pub trait AudioBackend {
     fn shutdown(self: Box<Self>) -> AudioResult<()>;
 
     fn update(&self) -> AudioResult<()>;
+
+    fn get_event(&self, event_name: &str) -> AudioResult<Box<dyn AudioEventDescription>>;
 
     fn get_event_list(&self) -> AudioResult<Vec<Box<dyn AudioEventDescription>>>;
 

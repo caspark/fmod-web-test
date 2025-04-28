@@ -16,4 +16,4 @@ for profile in "debug" "release"; do
     cp "$SCRIPT_DIR/fmod/linux/api/studio/lib/x86_64/"* "target/$profile/"
 done
 
-cargo run "$@"
+RUST_LOG=info cargo run "$@"

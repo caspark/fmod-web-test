@@ -92,8 +92,11 @@ extern "C" {
     fn get_playback_state(this: &FmodEventInstance) -> FmodResult<JsValue>;
 }
 
-pub fn load_audio_backend(banks: Vec<String>, base_path: &str) -> Box<dyn AudioBackendLoader> {
-    Box::new(load_fmod(base_path, banks))
+pub fn load_audio_backend(base_path: &str, banks: &[&str]) -> Box<dyn AudioBackendLoader> {
+    Box::new(load_fmod(
+        base_path,
+        banks.into_iter().map(|s| s.to_string()).collect(),
+    ))
 }
 
 impl AudioBackendLoader for FmodLoader {

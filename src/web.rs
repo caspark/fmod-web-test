@@ -105,29 +105,16 @@ pub fn run() -> Result<(), JsValue> {
     Ok(())
 }
 
-#[allow(dead_code)]
 struct LoadedEvents {
-    looping_ambience_description: FmodEvent,
-    looping_ambience_instance: FmodInstance,
-    cancel_description: FmodEvent,
-    cancel_instance: FmodInstance,
     explosion_description: FmodEvent,
 }
 
 fn handle_audio(fmod_web: &FmodWeb, events: &mut Option<LoadedEvents>, i: i32) -> FmodResult<()> {
     if events.is_none() {
-        let looping_ambience_description = fmod_web.get_event("event:/Ambience/Country")?;
-        let looping_ambience_instance = looping_ambience_description.create_instance()?;
-        let cancel_description = fmod_web.get_event("event:/UI/Cancel")?;
-        let cancel_instance = cancel_description.create_instance()?;
         let explosion_description = fmod_web.get_event("event:/Weapons/Explosion")?;
         explosion_description.load_sample_data()?;
 
         *events = Some(LoadedEvents {
-            looping_ambience_description,
-            looping_ambience_instance,
-            cancel_description,
-            cancel_instance,
             explosion_description,
         });
     }

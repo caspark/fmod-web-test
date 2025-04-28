@@ -1,3 +1,15 @@
+//! An abstraction over the audio backend to support both desktop and web.
+//!
+//! Since loading on web needs to happen asynchronously (due to needing to instantiate fmod via a
+//! callback, and usually also waiting for audio files to be preloaded onto the emscripten
+//! filesystem), this API forces loading to happen asynchronously. Could be improved in the future
+//! by letting desktop loading happen synchronously and only making the loading asynchronous on web.
+//!
+//! This wrapper also boxes everything to make it possible to move types as necessary (e.g.
+//! [AudioEventInstance::release] takes self by value to ensure that the instance is not again used
+//! later). There might be a neater way to do that instead.
+#![allow(dead_code)]
+
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 

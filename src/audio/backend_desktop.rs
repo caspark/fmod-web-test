@@ -4,22 +4,29 @@ use fmod::{Utf8CStr, Utf8CString};
 
 use super::*;
 
-pub fn load_audio_backend(banks: Vec<String>, base_path: &str) -> Box<dyn AudioBackendLoader> {
+pub fn load_audio_backend(
+    banks_path: &str,
+    bank_filenames: &[&str],
+) -> Box<dyn AudioBackendLoader> {
     Box::new(FmodOxideAudioBackendLoader {
-        banks,
-        base_path: base_path.to_owned(),
+        banks_path: banks_path.to_owned(),
+        bank_filenames: bank_filenames
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>(),
     })
 }
 
 struct FmodOxideAudioBackendLoader {
-    banks: Vec<String>,
-    base_path: String,
+    banks_path: String,
+    bank_filenames: Vec<String>,
 }
 
 impl AudioBackendLoader for FmodOxideAudioBackendLoader {
     fn get_loaded(&self) -> Option<AudioResult<Box<dyn AudioBackend>>> {
-        // we just load the backend synchronously here
-        match FmodOxideAudioBackend::init(&self.banks, &self.base_path) {
+        // we just load the backend synchronously here but obviously this could be done
+        // asynchronously in the future
+        match FmodOxideAudioBackend::init(&self.bank_filenames, &self.banks_path) {
             Ok(backend) => {
                 info!("FMOD Oxide audio backend initialized");
                 Some(Ok(backend))
@@ -34,7 +41,7 @@ impl AudioBackendLoader for FmodOxideAudioBackendLoader {
 
 struct FmodOxideAudioBackend {
     system: fmod::studio::System,
-    master_bank: fmod::studio::Bank,
+    banks: Vec<(String, fmod::studio::Bank)>,
 }
 
 impl FmodOxideAudioBackend {
@@ -70,8 +77,7 @@ impl FmodOxideAudioBackend {
         };
         let system = builder.build(1024, studio_flags, fmod::InitFlags::NORMAL)?;
 
-        let mut master_bank = None;
-        const MASTER_BANK_FILENAME: &str = "Master.bank";
+        let mut loaded_banks = Vec::new();
         for bank_filename in banks {
             let loaded_bank = system.load_bank_file(
                 &Utf8CString::new(
@@ -82,24 +88,12 @@ impl FmodOxideAudioBackend {
                 )?,
                 fmod::studio::LoadBankFlags::NORMAL,
             )?;
-            if bank_filename == MASTER_BANK_FILENAME {
-                // start loading all non-streaming samples into memory (actual loading happens in background)
-                loaded_bank.load_sample_data()?;
-
-                master_bank = Some(loaded_bank);
-            }
+            loaded_banks.push((bank_filename.to_owned(), loaded_bank));
         }
-
-        let Some(master_bank) = master_bank else {
-            bail!(
-                "Master bank not found: at least one bank filename must be \
-                 '{MASTER_BANK_FILENAME}'"
-            );
-        };
 
         Ok(Box::new(FmodOxideAudioBackend {
             system,
-            master_bank,
+            banks: loaded_banks,
         }))
     }
 }
@@ -119,11 +113,20 @@ impl AudioBackend for FmodOxideAudioBackend {
     }
 
     fn get_event_list(&self) -> AudioResult<Vec<Box<dyn AudioEventDescription>>> {
-        let events = self.master_bank.get_event_list()?;
-        Ok(events
-            .into_iter()
-            .map(|e| Box::new(e) as Box<dyn AudioEventDescription>)
-            .collect::<Vec<_>>())
+        let mut all_events = Vec::new();
+        for (_bank_name, bank) in &self.banks {
+            let bank_events = bank
+                .get_event_list()
+                .with_context(|| format!("Getting event list for bank: {}", _bank_name))?;
+            all_events.extend(
+                bank_events
+                    .into_iter()
+                    .map(|e| Box::new(e) as Box<dyn AudioEventDescription>)
+                    .collect::<Vec<_>>(),
+            );
+        }
+
+        Ok(all_events)
     }
 
     fn set_listeners(&self, listeners: &[AudioListener]) -> AudioResult<()> {

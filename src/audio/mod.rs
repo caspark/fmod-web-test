@@ -8,20 +8,16 @@ mod backend_web;
 
 pub type AudioResult<T> = anyhow::Result<T>;
 
-pub fn start_loading_audio_backend() -> Box<dyn AudioBackendLoader> {
-    let banks = vec![
-        // we expect the master bank to contain all samples (at least for now)
-        "Master.bank".to_owned(),
-        // load the strings bank so we can look up events by name
-        "Master.strings.bank".to_owned(),
-    ];
-
+pub fn start_loading_audio_backend(
+    banks_path: &str,
+    bank_filenames: &[&str],
+) -> Box<dyn AudioBackendLoader> {
     info!("Loading audio backend");
 
     #[cfg(target_arch = "wasm32")]
-    return backend_web::load_audio_backend(banks, "./");
+    return backend_web::load_audio_backend(banks_path, bank_filenames);
     #[cfg(not(target_arch = "wasm32"))]
-    return backend_desktop::load_audio_backend(banks, "assets/banks");
+    return backend_desktop::load_audio_backend(banks_path, bank_filenames);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]

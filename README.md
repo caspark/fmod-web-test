@@ -19,10 +19,9 @@ The .so files are loaded at runtime by fmod.
 
 ### Linux
 ```sh
-# sets FMOD_SYS_FMOD_DIRECTORY and LD_LIBRARY_PATH as needed
-./run-linux.sh fmod/linux/api/studio/examples/
+./run-linux.sh fmod/linux/api/studio/examples/media
 # or
-./run-linux.sh --release -- fmod/linux/api/studio/examples/
+./run-linux.sh --release -- fmod/linux/api/studio/examples/media
 ```
 
 ### Web

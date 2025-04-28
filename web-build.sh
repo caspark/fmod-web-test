@@ -22,7 +22,7 @@ fi
 wasm-bindgen target/wasm32-unknown-unknown/debug/fmod-test.wasm --out-dir dist --target web
 
 cp index.html dist/index.html
-cp fmod-web.js dist/fmod-web.js
+# cp fmod-web.js dist/fmod-web.js
 
 # fmotstudioL is the large files - see https://www.fmod.com/docs/2.02/api/platforms-html5.html#upstream-wasm
 cp fmod/web/api/studio/lib/upstream/wasm/fmodstudioL* dist/

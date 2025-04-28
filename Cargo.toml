@@ -3,12 +3,17 @@ name = "fmod-test"
 version = "0.1.0"
 edition = "2024"
 
+[patch.crates-io]
+# fmod-audio-sys = { path = "../../srb/fmod-oxide/fmod-sys" }
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+env_logger = "0.11.8"
 crossterm = "0.29.0"
 fmod-audio-sys = "2.220.2"
 fmod-oxide = "2.2.0-pre.4"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-logger = "0.2.0"
 wasm-bindgen = { version = "0.2.100" }
 web-sys = { version = "0.3.77", features = [
     'Document',
@@ -17,6 +22,11 @@ web-sys = { version = "0.3.77", features = [
     'Node',
     'Window',
 ] }
+serde-wasm-bindgen = "0.6.5"
 
-[patch.crates-io]
-# fmod-audio-sys = { path = "../../srb/fmod-oxide/fmod-sys" }
+
+[dependencies]
+anyhow = "1.0.98"
+glam = { version = "0.30.2", features = ["serde"] }
+log = "0.4.27"
+serde = { version = "1.0.219", features = ["derive"] }

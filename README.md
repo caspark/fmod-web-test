@@ -1,4 +1,11 @@
 
+# FMOD on Web and Desktop
+
+A hacked up demo of some Rust code using a single abstraction over FMOD that works for both Desktop and Web.
+
+* Desktop support is based on [fmod-oxide](https://github.com/melody-rs/fmod-oxide/)
+* Web support is added by handwriting JS wrappers (see [./fmod-web.js]) which call FMOD's HTML5 SDK; these handwritten wrapper functions are invoked using [wasm-bindgen](https://rustwasm.github.io/wasm-bindgen/).
+
 ## FMOD SDK
 
 Download fmod sdk version 2.02.22 and extract like this:
